@@ -1,0 +1,6 @@
+{
+  "name": "Hospital Management System",
+  "description": "Comprehensive full-stack clinical and administrative management application for patients, OPD/IPD queues, operations, ward systems, billing, diagnostics, pharmacy, HR schedules, and visual analytical dashboards in dual-language English and Urdu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

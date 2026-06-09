@@ -1,0 +1,546 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+model User {
+  id              String        @id @default(uuid())
+  employeeId      String        @unique
+  name            String
+  email           String        @unique
+  phone           String?
+  cnic            String        @unique
+  role            String        // SUPER_ADMIN, ADMIN, DOCTOR, NURSE, RECEPTIONIST, CASHIER, LAB_TECH
+  department      String        // CARDIOLOGY, MATERNITY, EMERGENCY, etc.
+  passwordHash    String
+  shift           String        @default("MORNING") // MORNING, EVENING, NIGHT
+  status          String        @default("ACTIVE") // ACTIVE, INACTIVE, LOCKED
+  failedLogins    Int           @default(0)
+  lockedUntil     DateTime?
+  salary          Float         @default(65000)
+  appraisalNotes  String?       @db.Text
+  
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  deletedAt       DateTime?     @map("deleted_at")
+  createdBy       String        @default("SYSTEM") @map("created_by")
+
+  // Relations
+  attendances     Attendance[]
+  auditLogs       AuditLog[]
+  opdVisits       OPDVisit[]    @relation("DoctorOPD")
+  otTeams         OTTeam[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String    @id @default(uuid())
+  name        String    @unique // SUPER_ADMIN, DOCTOR, etc.
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String    @default("SYSTEM") @map("created_by")
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String    @id @default(uuid())
+  roleName    String    @map("role_name")
+  action      String    // READ_PATIENT, WRITE_BILLING, etc.
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String    @default("SYSTEM") @map("created_by")
+
+  @@map("permissions")
+}
+
+model Patient {
+  id                    String            @id @default(uuid())
+  mrn                   String            @unique // Medical Record Number
+  name                  String
+  age                   Int
+  gender                String
+  bloodGroup            String?           @map("blood_group")
+  address               String?
+  phone                 String?
+  cnic                  String?           @unique
+  emergencyContactName  String?           @map("emergency_contact_name")
+  emergencyContactPhone String?           @map("emergency_contact_phone")
+  insuranceProvider     String?           @map("insurance_provider")
+  insurancePolicyNumber String?           @map("insurance_policy_number")
+  photoUrl              String?           @map("photo_url") @db.Text
+
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+  deletedAt             DateTime?         @map("deleted_at")
+  createdBy             String            @default("SYSTEM") @map("created_by")
+
+  // Relations
+  visits                PatientVisit[]
+  opdVisits             OPDVisit[]
+  ipdAdmissions         IPDAdmission[]
+  bills                 Bill[]
+  labOrders             LabOrder[]
+  radiologyOrders       RadiologyOrder[]
+  otSchedules           OTSchedule[]
+
+  @@map("patients")
+}
+
+model PatientVisit {
+  id          String    @id @default(uuid())
+  patientId   String    @map("patient_id")
+  patient     Patient   @relation(fields: [patientId], references: [id])
+  visitDate   DateTime  @default(now()) @map("visit_date")
+  type        String    // OPD, IPD, LAB, RADIOLOGY
+  notes       String?   @db.Text
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String    @default("SYSTEM") @map("created_by")
+
+  @@index([patientId])
+  @@map("patient_visits")
+}
+
+model OPDVisit {
+  id                     String            @id @default(uuid())
+  tokenNumber            Int               @map("token_number")
+  patientMrn             String            @map("patient_mrn")
+  patientId              String            @map("patient_id")
+  patient                Patient           @relation(fields: [patientId], references: [id])
+  doctorId               String            @map("doctor_id")
+  doctor                 User              @relation("DoctorOPD", fields: [doctorId], references: [id])
+  department             String
+  status                 String            @default("PENDING") // PENDING, CALLED, COMPLETED
+  billingStatus          String            @default("PENDING") // PENDING, PAID
+  
+  // Clinical
+  complaints             String?           @db.Text
+  vitalsBp               String?           @map("vitals_bp")
+  vitalsPulse            String?           @map("vitals_pulse")
+  vitalsTemp             String?           @map("vitals_temp")
+  vitalsWeight           String?           @map("vitals_weight")
+  diagnosis              String?           @db.Text
+  treatmentPlan          String?           @map("treatment_plan") @db.Text
+  charges                Float             @default(1500)
+
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+  deletedAt              DateTime?         @map("deleted_at")
+  createdBy              String            @default("SYSTEM") @map("created_by")
+
+  prescriptions          OPDPrescription[]
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@map("opd_visits")
+}
+
+model OPDPrescription {
+  id          String    @id @default(uuid())
+  opdVisitId  String    @map("opd_visit_id")
+  opdVisit    OPDVisit  @relation(fields: [opdVisitId], references: [id])
+  medicineId  String    @map("medicine_id")
+  name        String    // Medicine name
+  dosage      String    // e.g. 1-0-1
+  duration    String    // e.g. 5 days
+  instructions String?  @db.Text
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String    @default("SYSTEM") @map("created_by")
+
+  @@index([opdVisitId])
+  @@map("opd_prescriptions")
+}
+
+model IPDAdmission {
+  id                    String            @id @default(uuid())
+  patientId             String            @map("patient_id")
+  patient               Patient           @relation(fields: [patientId], references: [id])
+  ward                  String            // ICU, General Ward Female, Male Ward, etc.
+  bedId                 String            @map("bed_id")
+  bedNumber             String            @map("bed_number")
+  admittedAt            DateTime          @default(now()) @map("admitted_at")
+  dischargedAt          DateTime?         @map("discharged_at")
+  status                String            @default("ADMITTED") // ADMITTED, DISCHARGED
+  diagnosis             String?           @db.Text
+  dailyCharge           Float             @default(2500) @map("daily_charge")
+  totalCalculatedBill   Float             @default(0) @map("total_calculated_bill")
+  dischargeInstructions String?           @map("discharge_instructions") @db.Text
+
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+  deletedAt             DateTime?         @map("deleted_at")
+  createdBy             String            @default("SYSTEM") @map("created_by")
+
+  @@index([patientId])
+  @@map("ipd_admissions")
+}
+
+model Ward {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  type        String    // ICU, CCU, GENERAL, SEMI_PRIVATE
+  totalBeds   Int       @default(10) @map("total_beds")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String    @default("SYSTEM") @map("created_by")
+
+  beds        Bed[]
+
+  @@map("wards")
+}
+
+model Bed {
+  id          String    @id @default(uuid())
+  bedNumber   String    @map("bed_number")
+  wardId      String    @map("ward_id")
+  ward        Ward      @relation(fields: [wardId], references: [id])
+  status      String    @default("AVAILABLE") // AVAILABLE, OCCUPIED, MAINTENANCE
+  dailyCharge Float     @default(1500) @map("daily_charge")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String    @default("SYSTEM") @map("created_by")
+
+  @@index([wardId])
+  @@map("beds")
+}
+
+model Bill {
+  id                     String            @id @default(uuid())
+  invoiceNumber          String            @unique @map("invoice_number")
+  patientId              String            @map("patient_id")
+  patient                Patient           @relation(fields: [patientId], references: [id])
+  module                 String            // OPD, IPD, LAB, PHARMACY, OT, RADIOLOGY
+  subtotal               Float
+  discountApprovedAmount Float             @default(0) @map("discount_approved_amount")
+  discountReason         String?           @map("discount_reason")
+  taxAmount              Float             @default(0) @map("tax_amount") // Punjab Revenue Authority service tax
+  netBill                Float             @map("net_bill")
+  insuranceClaimProvider String?           @map("insurance_claim_provider")
+  insuranceClaimAmount   Float             @default(0) @map("insurance_claim_amount")
+  amountPaidByPatient    Float             @default(0) @map("amount_paid_by_patient")
+  paymentMethod          String            @default("CASH") // CASH, CARD, MOBILE_WALLET, CHIP
+  status                 String            @default("UNPAID") // UNPAID, PARTIAL, PAID, VOIDED
+
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+  deletedAt              DateTime?         @map("deleted_at")
+  createdBy              String            @default("SYSTEM") @map("created_by")
+
+  items                  BillItem[]
+  payments               Payment[]
+
+  @@index([patientId])
+  @@map("bills")
+}
+
+model BillItem {
+  id          String    @id @default(uuid())
+  billId      String    @map("bill_id")
+  bill        Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int       @default(1)
+  unitPrice   Float     @map("unit_price")
+  totalPrice  Float     @map("total_price")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String    @default("SYSTEM") @map("created_by")
+
+  @@index([billId])
+  @@map("bill_items")
+}
+
+model Payment {
+  id            String    @id @default(uuid())
+  billId        String    @map("bill_id")
+  bill          Bill      @relation(fields: [billId], references: [id])
+  amountPaid    Float     @map("amount_paid")
+  paymentMethod String    @map("payment_method")
+  transactionId String?   @map("transaction_id")
+  notes         String?
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdBy     String    @default("SYSTEM") @map("created_by")
+
+  @@index([billId])
+  @@map("payments")
+}
+
+model LabOrder {
+  id                    String            @id @default(uuid())
+  patientId             String            @map("patient_id")
+  patient               Patient           @relation(fields: [patientId], references: [id])
+  testId                String            @map("test_id")
+  testName              String            @map("test_name")
+  sampleType            String            @map("sample_type")
+  requestedByDoctorId   String?           @map("requested_by_doctor_id")
+  requestedByDoctorName String?           @map("requested_by_doctor_name")
+  labTechId             String?           @map("lab_tech_id")
+  labTechName           String?           @map("lab_tech_name")
+  status                String            @default("ORDERED") // ORDERED, SAMPLE_COLLECTED, RECORDED, VALIDATED
+  isCritical            Boolean           @default(false) @map("is_critical")
+  resultValue           String?           @map("result_value")
+  notes                 String?           @db.Text
+  charges               Float             @default(500)
+
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+  deletedAt             DateTime?         @map("deleted_at")
+  createdBy             String            @default("SYSTEM") @map("created_by")
+
+  @@index([patientId])
+  @@map("lab_orders")
+}
+
+model LabTest {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  code        String    @unique
+  department  String    @default("DIAGNOSTICS")
+  sampleType  String    @map("sample_type")
+  normalRange String    @map("normal_range")
+  price       Float     @default(500)
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String    @default("SYSTEM") @map("created_by")
+
+  @@map("lab_tests")
+}
+
+model LabResult {
+  id          String    @id @default(uuid())
+  labOrderId  String    @unique @map("lab_order_id")
+  resultData  String    @db.Text @map("result_data")
+  isCritical  Boolean   @default(false) @map("is_critical")
+  remarks     String?   @db.Text
+  verifiedBy  String?   @map("verified_by")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String    @default("SYSTEM") @map("created_by")
+
+  @@map("lab_results")
+}
+
+model Medicine {
+  id             String    @id @default(uuid())
+  code           String    @unique // e.g. MED-001
+  name           String
+  genericName    String    @map("generic_name")
+  category       String    @default("ORAL") // ORAL, INHALER, INJECTION, INFUSION, TOPICAL
+  batchNumber    String    @map("batch_number")
+  stockCount     Int       @default(0) @map("stock_count")
+  minStockLevel  Int       @default(20) @map("min_stock_level")
+  expiryDate     String    @map("expiry_date")
+  salePrice      Float     @map("sale_price")
+  supplierName   String?   @map("supplier_name")
+
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  createdBy      String    @default("SYSTEM") @map("created_by")
+
+  stocks         MedicineStock[]
+
+  @@map("medicines")
+}
+
+model MedicineStock {
+  id            String    @id @default(uuid())
+  medicineId    String    @map("medicine_id")
+  medicine      Medicine  @relation(fields: [medicineId], references: [id])
+  batchNumber   String    @map("batch_number")
+  quantityAdded Int       @map("quantity_added")
+  supplierName  String?   @map("supplier_name")
+  costPrice     Float     @default(0) @map("cost_price")
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+  createdBy     String    @default("SYSTEM") @map("created_by")
+
+  @@index([medicineId])
+  @@map("medicine_stock")
+}
+
+model PharmacyOrder {
+  id          String    @id @default(uuid())
+  patientName String    @map("patient_name")
+  patientMrn  String?   @map("patient_mrn")
+  totalBills  Float     @default(0) @map("total_bills")
+  status      String    @default("DISPENSED") // ORDERED, DISPENSED, CANCELLED
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String    @default("SYSTEM") @map("created_by")
+
+  @@map("pharmacy_orders")
+}
+
+model RadiologyOrder {
+  id                    String    @id @default(uuid())
+  patientId             String    @map("patient_id")
+  patient               Patient   @relation(fields: [patientId], references: [id])
+  type                  String    // Chest X-Ray, Brain MRI, CT Scan, ultrasound
+  clinicalIndication    String?   @map("clinical_indication") @db.Text
+  status                String    @default("ORDERED") // ORDERED, FILMED, READ
+  imageUrl              String?   @map("image_url") @db.Text
+  findings              String?   @db.Text
+  completedAt           DateTime? @map("completed_at")
+  charges               Float     @default(1500)
+
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  deletedAt             DateTime? @map("deleted_at")
+  createdBy             String    @default("SYSTEM") @map("created_by")
+
+  @@index([patientId])
+  @@map("radiology_orders")
+}
+
+model OTSchedule {
+  id             String    @id @default(uuid())
+  patientId      String    @map("patient_id")
+  patient        Patient   @relation(fields: [patientId], references: [id])
+  patientMrn     String    @map("patient_mrn")
+  surgeryName    String    @map("surgery_name")
+  scheduledAt    DateTime  @map("scheduled_at")
+  theaterNumber  String    @map("theater_number")
+  status         String    @default("SCHEDULED") // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+  charges        Float     @default(120000)
+  
+  // Pre op checks
+  consentSigned  Boolean   @default(false) @map("consent_signed")
+  pacCompleted   Boolean   @default(false) @map("pac_completed")
+  fastingOk      Boolean   @default(false) @map("fasting_ok")
+  markedSite     Boolean   @default(false) @map("marked_site")
+
+  postOpNotes    String?   @map("post_op_notes") @db.Text
+
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+  createdBy      String    @default("SYSTEM") @map("created_by")
+
+  team           OTTeam[]
+
+  @@index([patientId])
+  @@map("ot_schedules")
+}
+
+model OTTeam {
+  id           String     @id @default(uuid())
+  otScheduleId String     @map("ot_schedule_id")
+  otSchedule   OTSchedule @relation(fields: [otScheduleId], references: [id], onDelete: Cascade)
+  userId       String?    @map("user_id")
+  user         User?      @relation(fields: [userId], references: [id])
+  role         String     // Surgeon, Lead Surgeon, Anesthetist, Scrub Nurse
+  staffName    String     @map("staff_name")
+
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  deletedAt    DateTime?  @map("deleted_at")
+  createdBy    String     @default("SYSTEM") @map("created_by")
+
+  @@index([otScheduleId])
+  @@index([userId])
+  @@map("ot_teams")
+}
+
+model Attendance {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  user             User      @relation(fields: [userId], references: [id])
+  clockIn          String    @map("clock_in")
+  clockOut         String?   @map("clock_out")
+  date             String    // YYYY-MM-DD
+  status           String    @default("PRESENT") // PRESENT, ABSENT, LEAVE
+
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdBy        String    @default("SYSTEM") @map("created_by")
+
+  @@index([userId])
+  @@map("attendance")
+}
+
+model Salary {
+  id               String    @id @default(uuid())
+  employeeId       String    @map("employee_id")
+  amount           Float
+  payPeriod        String    @map("pay_period") // e.g. June 2026
+  status           String    @default("PAID") // PAID, PENDING
+  releaseDate      DateTime  @default(now()) @map("release_date")
+
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdBy        String    @default("SYSTEM") @map("created_by")
+
+  @@map("salaries")
+}
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  userId      String?   @map("user_id")
+  user        User?     @relation(fields: [userId], references: [id])
+  action      String    // LOGIN_SUCCESS, DATA_MUTATED, etc.
+  details     String?   @db.Text
+  ipAddress   String?   @map("ip_address")
+  userAgent   String?   @map("user_agent")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  createdBy   String    @default("SYSTEM") @map("created_by")
+
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+model Setting {
+  id               String    @id @default(uuid())
+  hospitalName     String    @map("hospital_name")
+  hospitalAddress  String    @db.Text @map("hospital_address")
+  phone            String
+  taxRatePercent   Float     @default(5) @map("tax_rate_percent")
+  smsTemplate      String    @db.Text @map("sms_template")
+  whatsappTemplate String    @db.Text @map("whatsapp_template")
+  logoText         String    @default("Mayo ERP") @map("logo_text")
+
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  createdBy        String    @default("SYSTEM") @map("created_by")
+
+  @@map("settings")
+}
