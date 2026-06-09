@@ -29,8 +29,16 @@ import {
   WardType,
 } from "./src/types";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+let currentDirname = process.cwd();
+try {
+  currentDirname = __dirname;
+} catch (e) {
+  try {
+    currentDirname = path.dirname(fileURLToPath(import.meta.url));
+  } catch (err) {
+    currentDirname = process.cwd();
+  }
+}
 
 const app = express();
 app.use(express.json());
@@ -40,7 +48,7 @@ const PORT = 3000;
 const isVercel = process.env.VERCEL === "1" || process.env.NOW_BUILD === "1";
 const DB_FILE = isVercel
   ? path.join("/tmp", "hospital_db.json")
-  : path.join(__dirname, "data", "hospital_db.json");
+  : path.join(process.cwd(), "data", "hospital_db.json");
 
 // Ensure database directory exists safely without throwing or crashing
 try {
@@ -133,7 +141,7 @@ function loadDb() {
   }
 
   // 2. Try to fallback to pre-bundled seed state in source bundle
-  const bundledDbPath = path.join(__dirname, "data", "hospital_db.json");
+  const bundledDbPath = path.join(process.cwd(), "data", "hospital_db.json");
   if (fs.existsSync(bundledDbPath)) {
     try {
       const content = fs.readFileSync(bundledDbPath, "utf-8");
