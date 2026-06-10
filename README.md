@@ -130,4 +130,63 @@ This project is optimized for Vercel using a standalone `api/index.ts` handler t
 - **📄 Audit Trail:** Integrated logging for all administrative actions.
 
 ---
+
+## 📁 Project Structure
+hospital-management-system/
+├── api/
+│   └── index.ts
+├── src/
+│   ├── components/
+│   │   ├── BillingManagement.tsx
+│   │   ├── Dashboard.tsx
+│   │   ├── HRPerformance.tsx
+│   │   ├── IPDManagement.tsx
+│   │   ├── LabDiagnostics.tsx
+│   │   ├── OPDManagement.tsx
+│   │   ├── OperationTheater.tsx
+│   │   ├── PatientList.tsx
+│   │   ├── PatientManagement.tsx
+│   │   ├── PatientProfile.tsx
+│   │   ├── PatientRegistration.tsx
+│   │   ├── PharmacyInventory.tsx
+│   │   ├── RadiologyImaging.tsx
+│   │   ├── Sidebar.tsx
+│   │   └── SystemSettings.tsx
+│   ├── services/
+│   │   ├── auth.service.ts
+│   │   ├── billing.service.ts
+│   │   ├── ipd.service.ts
+│   │   ├── lab.service.ts
+│   │   ├── opd.service.ts
+│   │   ├── patient.service.ts
+│   │   ├── pharmacy.service.ts
+│   │   └── whatsapp.service.ts
+│   ├── pdf/
+│   │   ├── BillingReceipt.tsx
+│   │   ├── IPDSummary.tsx
+│   │   ├── LabReport.tsx
+│   │   └── PatientCard.tsx
+│   ├── db/
+│   │   └── prisma.ts
+│   ├── lib/
+│   │   └── logger.ts
+│   ├── App.tsx
+│   ├── main.tsx
+│   ├── types.ts
+│   └── utils.ts
+├── prisma/
+│   ├── schema.prisma
+│   └── seed.ts
+├── lib/
+│   └── logger.ts
+├── .github/
+├── data/
+├── server.ts
+├── vercel.json
+├── vite.config.ts
+├── tsconfig.json
+├── .env.example
+└── package.json
+
+---
 © 2026 Mayo Trust Healthcare Complex. All Rights Reserved.
