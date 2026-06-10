@@ -132,6 +132,7 @@ This project is optimized for Vercel using a standalone `api/index.ts` handler t
 ---
 
 ## 📁 Project Structure
+```text
 hospital-management-system/
 ├── api/
 │   └── index.ts
@@ -187,6 +188,7 @@ hospital-management-system/
 ├── tsconfig.json
 ├── .env.example
 └── package.json
+```
 
 ---
 © 2026 Mayo Trust Healthcare Complex. All Rights Reserved.
