@@ -1,89 +1,133 @@
-# Mayo Administrative Hospital Management System (HMS)
+# 🏥 Mayo Administrative Hospital Management System (HMS)
 
-A complete, production-ready full-stack Hospital Management Enterprise Resource Planning (ERP) system designed with strict modularity, high security standards, and comprehensive medical data compliance metrics.
+[![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployment-black?style=flat-square&logo=vercel)](https://hospital-management-system-64ma.vercel.app)
+[![Tech Stack](https://img.shields.io/badge/Stack-React_19_%2B_Express-blue?style=flat-square)](https://github.com/kiranMushtaque/hospital-management-system)
 
----
-
-## 🛠️ Tech Stack & Pillars
-
-- **Frontend Core:** Next.js 14 (App Router) + React 19 + TypeScript + Tailwind CSS
-- **Interactions & Micro-Animations:** `motion` (by motion/react)
-- **Official Medical Printouts (PDFs):** Custom typeset vectors compiled on-the-fly using `@react-pdf/renderer`
-- **Dynamic Chartings:** `recharts` / `d3` analytics dashboards
-- **Backend Architecture:** Node.js + Express + Prisma ORM + JWT Session Authorization
-- **Database Target:** MySQL relational engine (fully PlanetScale and Cloud SQL compatible)
-- **External Notifications Engine:** Twilio WhatsApp Messaging Gateway API
-- **Security Protocols:** Failed login lockouts, HTTP-Only Token Cookies, Rate-limiting, and CORS configurations.
+A high-performance, modular Clinical ERP system designed for medical facilities in Pakistan. This system handles everything from patient registration to complex clinical operations like IPD/OPD management, Lab Diagnostics, and Billing.
 
 ---
 
-## 📂 Modular Structure
+## 🚀 Overview
 
-- `/src/pdf/` - Beautiful clinical vectors layout engines (`BillingReceipt.tsx`, `LabReport.tsx`, `IPDSummary.tsx`, `PatientCard.tsx`)
-- `/src/services/` - Typesafe backend transaction handlers (`auth.service.ts`, `patient.service.ts`, `billing.service.ts`, `lab.service.ts`, `pharmacy.service.ts`, `ipd.service.ts`, `opd.service.ts`, `whatsapp.service.ts`)
-- `/prisma/` - Database schemas, seeding records, and migrations indexes
-- `/lib/logger.ts` - Comprehensive security trace auditor and route error tracker logging to `logs/error.log`
+Mayo HMS is a full-stack enterprise resource planning (ERP) solution tailored for hospital administration. It features a bilingual interface (English/Urdu), a robust security model with role-based access control, and a modern dark/light UI.
 
 ---
 
-## 🔑 Default Credentials (Seeded)
+## 🛠️ Tech Stack
 
-| Name | Role | Employee ID | Default Password |
-| :--- | :--- | :--- | :--- |
-| **Irfan Qureshi** | Super Admin | `EMP-1010` | `admin123` |
-| **Dr. Sadia Malik** | Doctor / Cardiologist | `EMP-2020` | `doctor123` |
-| **Dr. Fahad Alvi** | Doctor / Pediatrician | `EMP-3030` | `doctor123` |
+### Frontend
+- **Framework:** React 19 (Vite)
+- **Styling:** Tailwind CSS 4.0
+- **Animations:** Motion (formerly Framer Motion)
+- **Icons:** Lucide React
+- **PDF Generation:** @react-pdf/renderer
+- **State Management:** TanStack React Query
 
----
-
-## 🔌 API Route Endpoints
-
-### 🔒 Authentication System
-- `POST /api/auth/login` - Dual JWT session creation (Access Token + HttpOnly Refresh Token Cookie)
-- `POST /api/auth/logout` - Blacklists access token; flushes cookies
-- `POST /api/auth/refresh-token` - Signs new short-lived access token using valid refresh cookies
-- `GET /api/auth/me` - Validates bearer session access and maps the current user profile
-- `POST /api/auth/change-password` - Checks strength and updates hashed password secrets
-
-### 📢 WhatsApp Notification Engines (Twilio)
-- `POST /api/whatsapp/send-receipt` - Dispatches billing invoice details template
-- `POST /api/whatsapp/send-appointment` - Dispatches physician timing slots confirmation
-- `POST /api/whatsapp/send-lab-result` - Dispatches atypical observation completion warnings
-
-### 💾 Administrative Utilities
-- `GET /api/admin/backup` - Pulls whole relational structure in plain downloadable format
+### Backend
+- **Server:** Node.js + Express
+- **Runtime:** tsx (Development) / Node (Production)
+- **Authentication:** JSON Web Tokens (JWT) + Cookie-parser
+- **Security:** Bcryptjs for hashing (Server)
+- **External APIs:** Twilio WhatsApp Gateway
 
 ---
 
-## 🚀 Compilation & Deployment Guidelines
+## 📂 System Modules
 
-### 1. Environment Configurations
-Clone `.env.example` into `.env` and fill the variables:
-```bash
-cp .env.example .env
+| Module | Features |
+| :--- | :--- |
+| **📊 Dashboard** | Real-time clinical analytics and revenue tracking. |
+| **👥 Patient Management** | Registration, MRN generation, and digital clinical files. |
+| **🏥 OPD/IPD** | Out-patient consultation and In-patient admission/discharge. |
+| **💊 Pharmacy** | Inventory tracking, low stock alerts, and medicine dispensing. |
+| **🔬 Lab & Radiology** | Diagnostic order tracking and digital report management. |
+| **💰 Billing** | Tax-compliant invoicing (PRA), insurance claims, and receipts. |
+| **🎭 OT Management** | Surgery scheduling and pre-op/post-op clinical tracking. |
+| **🏢 HR & Settings** | Staff clock-ins, payroll management, and hospital configuration. |
+
+---
+
+## 🔑 Demo Credentials (Authorized Registers)
+
+| Role | Employee ID | Password |
+| :--- | :--- | :--- |
+| **Super Admin** | `EMP-1010` | `admin123` |
+| **Duty Doctor** | `EMP-2020` | `doctor123` |
+| **Charge Nurse** | `EMP-3030` | `nurse123` |
+| **Lab Technician** | `EMP-4040` | `lab123` |
+| **Accounts Cashier**| `EMP-5050` | `cashier123` |
+
+> **Note:** For demo purposes, `admin123` and `doctor123` are accepted as global bypass passwords for any valid User ID.
+
+---
+
+## ⚙️ Environment Variables
+
+The following variables are required for full system functionality:
+
+```env
+NODE_ENV=production
+JWT_SECRET=mayo-trust-key-2026
+JWT_REFRESH_SECRET=mayo-refresh-key-2026
+
+# Local Database (Prisma/Localhost)
+DATABASE_URL="mysql://user:pass@host:3306/db"
+
+# Notifications (Twilio)
+TWILIO_ACCOUNT_SID=your_sid
+TWILIO_AUTH_TOKEN=your_token
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
 ```
 
-### 2. Database Schema Push & Migration
-Synchronize your schema directly onto PlanetScale/MySQL databases:
-```bash
-npx prisma generate
-npx prisma db push
-```
+---
 
-### 3. Database Seeding
-Execute our mock seed scripts:
-```bash
-npx prisma db seed
-```
+## 💻 Local Setup
+1. **Clone the repository:**
+   git clone https://github.com/kiranMushtaque/hospital-management-system.git
+   cd hospital-management-system
+2. **Install dependencies:**
+   npm install
+3. **Database setup:**
+   npx prisma generate
+   npx prisma db push
+4. **Run in development mode:**
+   npm run dev
+5. **Build for production:**
+   npm run build
 
-### 4. Running the Development Server
-```bash
-npm run dev
-```
+---
 
-### 5. Production Build Compiling
-Build frontend static targets and bundle TypeScript backend layers with esbuild:
-```bash
-npm run build
-npm start
-```
+## ☁️ Vercel Deployment
+
+This project is optimized for Vercel using a standalone `api/index.ts` handler to ensure serverless compatibility.
+
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
+- **API Handler:** `api/index.ts` (Express serverless)
+
+---
+
+## 🔌 API Routes
+
+### Authentication
+- `POST /api/auth/login` - Dual JWT session creation.
+- `POST /api/auth/logout` - Session termination and cookie clearing.
+- `GET /api/auth/me` - Token validation and user profile retrieval.
+
+### Clinical & Admin
+- `GET /api/dashboard/analytics` - System-wide performance stats.
+- `GET /api/patients` - Active registry retrieval.
+- `GET /api/settings` - Hospital configuration (Name, Address, Tax rates).
+
+---
+
+## ✨ Features
+
+- **🌓 Dual-Theme UI:** Native support for Light and Dark modes.
+- **🌍 Multilingual:** Toggle between English and Urdu (اردو) interfaces.
+- **🔒 Security:** JWT-based protected routes and HTTP-only cookies.
+- **📱 Responsive:** Optimized for desktop and clinical workstations.
+- **📄 Audit Trail:** Integrated logging for all administrative actions.
+
+---
+© 2026 Mayo Trust Healthcare Complex. All Rights Reserved.
